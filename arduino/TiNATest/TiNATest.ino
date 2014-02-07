@@ -30,12 +30,12 @@ void setup(){
 
 void loop(){
   while(Serial.available()){
-    Serial.write(Serial.read()); // ECHO SERIAL
+    // Serial.write(Serial.read()); // ECHO SERIAL
   }
   // Button test is  a little flakey, may need other resistor values
-  //testButtons();
-//  delay(500);
-  testMSGEQ7();
+  testButtons();
+  delay(500);
+  // testMSGEQ7();
 
 }
 
@@ -46,16 +46,25 @@ void testButtons(){
   delay(500);
   return;
 */
-  if ((reading >380)&& (reading < 450))
-    Serial.println("left");
-  else if (reading == 203)
-    Serial.println("right");
-  else if (reading > 1000)
-    Serial.println("up");
-  else if ( reading > 780 && reading < 850)
-    Serial.println("down");
-  else if ( reading > 590 && reading < 625)
-    Serial.println("middle");
+  Serial.print(reading);
+  Serial.print(" ");
+  if (reading > 900)
+    Serial.println("    up");
+  else if (reading > 700){
+    Serial.println("    down");
+  }
+  else if (reading > 500){
+    Serial.println("    middle");
+  }
+  else if (reading > 300){
+    Serial.println("    left");
+  }
+  else if (reading > 100){
+    Serial.println("    right");
+  }
+  else{
+    Serial.println("");
+  }
  //else   Serial.println(reading);
 }
 
