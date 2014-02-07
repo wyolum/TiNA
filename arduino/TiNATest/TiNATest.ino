@@ -15,7 +15,8 @@ void setup(){
   Serial.begin(BAUD);
   Wire.begin(WID);
   pinMode(13, OUTPUT);
-  pinMode(BUTTONPIN,INPUT_PULLUP);
+  pinMode(BUTTONPIN, INPUT); 
+  digitalWrite(BUTTONPIN, HIGH); 
 
   Serial.println("Hello");
   data[0] = 255; // reserved
