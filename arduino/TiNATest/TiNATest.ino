@@ -4,10 +4,14 @@
 #define BUTTONPIN A6 // uses a resistor ladder for decoding 5 buttons
 
 const int WID = 42;
-const int DS3231_ADDR = 104;
+// const int DS3231_ADDR = 104; // define in RTC code
 const int N_DATA_BYTE = 32;
 const int BAUD = 9600;
 const int CHIPSELECT = 10;
+const int strobe = A0; // strobe pins on digital 4
+const int res = A1; // reset pins on digital 5
+
+
 uint8_t data[N_DATA_BYTE];
 uint8_t address;
 
@@ -17,6 +21,8 @@ void setup(){
   pinMode(13, OUTPUT);
   pinMode(BUTTONPIN, INPUT); 
   digitalWrite(BUTTONPIN, HIGH); 
+  pinMode(res, OUTPUT); // reset
+  pinMode(strobe, OUTPUT); // strobe
 
   Serial.println("Hello");
   data[0] = 255; // reserved
@@ -26,6 +32,8 @@ void setup(){
     Serial.println("SD passed");
   else
     Serial.println("SD failed");
+  testRTC();
+  delay(1000);
 }
 
 void loop(){
@@ -33,9 +41,9 @@ void loop(){
     // Serial.write(Serial.read()); // ECHO SERIAL
   }
   // Button test is  a little flakey, may need other resistor values
-  testButtons();
-  delay(500);
-  // testMSGEQ7();
+  // testButtons();
+  delay(50);
+  testMSGEQ7();
 
 }
 
@@ -110,8 +118,6 @@ uint8_t test_SD(){
 
 // Example 48.1 - tronixstuff.com/tutorials > chapter 48 - 30 Jan 2013 
 // MSGEQ7 spectrum analyser shield - basic demonstration
-int strobe = A0; // strobe pins on digital 4
-int res = A1; // reset pins on digital 5
 int left[7]; // store band values in these arrays
 int right[7];
 int band;
@@ -119,8 +125,6 @@ int EQ_OUT1 = A2;
 int EQ_OUT2 = A3;
 void InitMSGEq7()
 {
- pinMode(res, OUTPUT); // reset
- pinMode(strobe, OUTPUT); // strobe
  digitalWrite(res,LOW); // reset low
  digitalWrite(strobe,HIGH); //pin 5 is RESET on the shield
 }
@@ -145,10 +149,10 @@ void testMSGEQ7()
  // display values of left channel on serial monitor
  for (band = 0; band < 7; band++)
  {
- Serial.print(left[band]);
- Serial.print(" ");
+   //Serial.print(left[band]);
+   //Serial.print(" ");
  }
- Serial.println();
+ // Serial.println();
 
 // display values of right channel on serial monitor
  for (band = 0; band < 7; band++)
@@ -159,3 +163,79 @@ void testMSGEQ7()
  Serial.println();
  
 }
+/********************************************************************************
+ * RTC code
+ ********************************************************************************/
+#define IS_BCD true
+#define IS_DEC false
+#define IS_BYTES false
+const int DS3231_ADDR = 104;
+
+// decimal to binary coded decimal
+uint8_t dec2bcd(int dec){
+  uint8_t t = dec / 10;
+  uint8_t o = dec - t * 10;
+  return (t << 4) + o;
+}
+
+// binary coded decimal to decimal
+int bcd2dec(uint8_t bcd){
+  return (((bcd & 0b11110000)>>4)*10 + (bcd & 0b00001111));
+}
+
+
+bool rtc_raw_read(uint8_t addr,
+		  uint8_t n_bytes,
+		  bool is_bcd,
+		  uint8_t *dest){
+
+  bool out = false;
+  Wire.beginTransmission(DS3231_ADDR); 
+  // Wire.send(addr); 
+  Wire.write(addr);
+  Wire.endTransmission();
+  Wire.requestFrom(DS3231_ADDR, (int)n_bytes); // request n_bytes bytes 
+  if(Wire.available()){
+    for(uint8_t i = 0; i < n_bytes; i++){
+      dest[i] = Wire.read();
+      if(is_bcd){ // needs to be converted to dec
+	dest[i] = bcd2dec(dest[i]);
+      }
+    }
+    out = true;
+  }
+  return out;
+}
+
+bool testRTC(){
+  bool status = true;
+  uint8_t date[7];
+  if(rtc_raw_read(0, 7, true, date)){
+    Serial.print("DATE: ");
+    // date[2], date[1], date[0], date[4], date[5], date[6]
+    //      hr,     min,     sec,     day,   month,  yr;
+      Serial.print(date[2], DEC);
+      Serial.print(":");
+      Serial.print(date[1], DEC);
+      Serial.print(":");
+      Serial.print(date[0], DEC);
+      Serial.print("  ");
+
+      Serial.print(date[4], DEC);
+      Serial.print("/");
+      Serial.print(date[5], DEC);
+      Serial.print("/");
+      Serial.print(date[6], DEC);
+      Serial.print(".");
+
+    Serial.println("");
+  }
+  else{
+    Serial.print("RTC FAIL");
+    status = false;
+  }
+  return status;
+}
+/********************************************************************************
+ * END RTC code
+ ********************************************************************************/
