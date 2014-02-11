@@ -26,7 +26,9 @@ uint8_t digits[10*4] = {62,65,65,62, // 0
 			54,73,73,54, // 8
 			38,73,73,62}; // 9
 
-uint8_t bitmap[32];
+uint8_t r_bitmap[32];
+uint8_t g_bitmap[32];
+uint8_t b_bitmap[32];
 
 void set4x7_digit(uint8_t x, uint8_t y, uint8_t digit, uint32_t color){
   uint8_t val;
@@ -133,9 +135,9 @@ void display_bitmap(uint32_t color){
   tina.color2rgb(color, &r, &g, &b);
   for(uint8_t j = 0; j < 8; j++){
     for(uint8_t i = 0; i < 32; i++){
-      tina.strips[j].pixels[3 * i + 0] = r * (bitmap[i] >> j & 1);
-      tina.strips[j].pixels[3 * i + 1] = g * (bitmap[i] >> j & 1);
-      tina.strips[j].pixels[3 * i + 2] = b * (bitmap[i] >> j & 1);
+      tina.strips[j].pixels[3 * i + 1] = r * (r_bitmap[i] >> j & 1);
+      tina.strips[j].pixels[3 * i + 0] = g * (g_bitmap[i] >> j & 1);
+      tina.strips[j].pixels[3 * i + 2] = b * (b_bitmap[i] >> j & 1);
     }
     tina.strips[j].changed = true;
     tina.strips[j].show();
@@ -160,12 +162,16 @@ void set_ss_loop(){
 
 void loop(){
   // set_hh_loop();
-  // clock_loop();
   for(int i = 0; i < 32; i++){
-    bitmap[i] = i;
+    r_bitmap[i] = i + count;
+    g_bitmap[i] = i - count;
+    b_bitmap[i] = i + 2 * count;
   }
-  display_bitmap(tina.Color(25, 25, 25));
-  while(1) delay(100);
+  display_bitmap(tina.Color(0, 25, 0));
+  count++;
+  return;
+  clock_loop();
+  // while(1) delay(100);
   if(start_time == 0 && tina.getButton()){
     start_time = getTime() + 10;
   }
