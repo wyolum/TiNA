@@ -17,7 +17,6 @@ uint8_t address;
 
 void setup(){
   Serial.begin(BAUD);
-  Wire.begin(WID);
   pinMode(13, OUTPUT);
   pinMode(BUTTONPIN, INPUT); 
   digitalWrite(BUTTONPIN, HIGH); 
@@ -144,6 +143,7 @@ void readMSGEQ7()
 }
 void testMSGEQ7()
 {
+  InitMSGEq7();
  readMSGEQ7();
  
  // display values of left channel on serial monitor
