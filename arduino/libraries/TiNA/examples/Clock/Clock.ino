@@ -30,30 +30,53 @@ uint8_t r_bitmap[32];
 uint8_t g_bitmap[32];
 uint8_t b_bitmap[32];
 
+void bitmap_clear(){
+  for(uint8_t i = 0; i < 32; i++){
+    r_bitmap[i] = 0;
+    g_bitmap[i] = 0;
+    b_bitmap[i] = 0;
+  }
+}
+
+void bitmap_setpixel(uint8_t x, uint8_t y, uint8_t *bitmap, bool val){
+  if(val){
+    bitmap[x] |= ((uint8_t)1) << y;
+  }
+  else{
+    // bitmap[x] |= ((uint8_t)val) << y;
+  }
+}
+
+void rgb_setpixel(uint8_t x, uint8_t y, uint32_t color){
+  uint8_t r, g, b;
+  tina.color2rgb(color, &r, &g, &b);
+  bitmap_setpixel(x, y, r_bitmap, r > 0);
+  bitmap_setpixel(x, y, g_bitmap, g > 0);
+  bitmap_setpixel(x, y, b_bitmap, g > 0);
+}
+
 void set4x7_digit(uint8_t x, uint8_t y, uint8_t digit, uint32_t color){
   uint8_t val;
+  uint8_t bit;
+
   for(uint8_t i=x; i<x + 4; i++){
     val = digits[4 * digit + i - x];
-    Serial.println(val);
-    for(uint8_t j=y; j < y + 7; j++){
-      if((val >> (j - y)) & 1){
-	tina.setpixel(i, j, color);
-      }
-      else{
-	tina.setpixel(i, j, 0);
-      }
+    //Serial.println(val);
+    for(uint8_t j = 0; j < 7; j++){
+      bit = (val >> j) & 1;
+      rgb_setpixel(i, j + y, color * bit);
     }
   }
 }
 
 void setup(){
-  Serial.begin(115200);
+  //Serial.begin(115200);
   if(!tina.setup(3)){
-    Serial.print("TiNA setup failed.  Error code:");
-    Serial.println(tina.error_code);
+    //Serial.print("TiNA setup failed.  Error code:");
+    //Serial.println(tina.error_code);
   }
   else{
-    Serial.println("TiNA setup ok");
+    //Serial.println("TiNA setup ok");
   }
   Wire.begin();
   // Serial.println("Wire started");
@@ -63,7 +86,6 @@ void setup(){
   // update_time();
 
   tina.fill(tina.Color(0, 0, 0));
-  tina.show();
 }
 
 void two_digits(uint8_t x, uint8_t val, uint32_t color, bool leading_zero_f){
@@ -76,24 +98,21 @@ void two_digits(uint8_t x, uint8_t val, uint32_t color, bool leading_zero_f){
   set4x7_digit(x + 5, 1, val%10, color);
 }
 
-void display_time(uint32_t t, uint32_t hh_color, uint32_t mm_color, uint32_t ss_color, bool leading_zero_f){
+void display_time(uint32_t t, uint32_t color, bool leading_zero_f){
   hh = (t / 3600) % 12;
   mm = (t / 60) % 60;
   ss = t % 60;
 
-  two_digits(0, hh, hh_color, leading_zero_f);
-  two_digits(11, mm, mm_color, true);
-  two_digits(22, ss, ss_color, true);
+  bitmap_clear();
+  two_digits(0, hh, color, leading_zero_f);
+  two_digits(11, mm, color, true);
+  two_digits(22, ss, color, true);
 
   if(ss % 2){
     colen(10, tina.Color(25, 25, 25));
     colen(21, tina.Color(25, 25, 25));
-    colen(9, 0);
-    colen(20, 0);
   }
   else{
-    colen(10, 0);
-    colen(21, 0);
     colen(9, tina.Color(25, 25, 25));
     colen(20, tina.Color(25, 25, 25));
   }  
@@ -121,10 +140,10 @@ void clock_loop(){
     color = tina.Color(50, 0, 0);
     countdown_mode = true;
   }
-  display_time(next_time, color, color, color, false);
-  while(getTime() % 60 != next_second){
-  }
-  tina.show();
+  display_time(next_time, color, false);
+  // while(getTime() % 60 != next_second){
+  // }
+  display_bitmap(tina.Color(0, 25, 0));
   last_update = millis();
   count++;
 }
@@ -144,32 +163,7 @@ void display_bitmap(uint32_t color){
   }
 }
 
-void set_hh_loop(){
-  uint32_t next_second = getTime() % 60 + 1;
-  if(tina.getButton() == BUTTON_UP){
-    setRTC(getTime() + 3600);
-  }
-  if(tina.getButton() == BUTTON_DOWN){
-    setRTC(getTime() - 3600);
-  }
-  display_time(getTime(), tina.Color(25, 25, 25), tina.Color(0, 25, 0), tina.Color(0, 25, 0), false);
-  tina.show();
-}
-void set_mm_loop(){
-}
-void set_ss_loop(){
-}
-
 void loop(){
-  // set_hh_loop();
-  for(int i = 0; i < 32; i++){
-    r_bitmap[i] = i + count;
-    g_bitmap[i] = i - count;
-    b_bitmap[i] = i + 2 * count;
-  }
-  display_bitmap(tina.Color(0, 25, 0));
-  count++;
-  return;
   clock_loop();
   // while(1) delay(100);
   if(start_time == 0 && tina.getButton()){
