@@ -14,8 +14,8 @@ uint8_t DD;
 uint8_t hh;
 uint8_t mm;
 uint8_t ss;
-uint32_t time_inc = 0;
-
+uint32_t last_time = 0;
+bool update_required = true;
 uint32_t start_time = 0;
 uint32_t next_time;
 uint8_t digits[10*4] = {62,65,65,62, // 0
@@ -109,23 +109,28 @@ void two_digits(uint8_t x, uint8_t val, uint32_t color, bool leading_zero_f){
 }
 
 void display_time(uint32_t t, uint32_t color, bool leading_zero_f){
-  hh = (t / 3600) % 12;
-  mm = (t / 60) % 60;
-  ss = t % 60;
+  if(t != last_time || update_required){
+    last_time = t;
+    update_required = true;
 
-  bitmap_clear();
-  two_digits(0, hh, color, leading_zero_f);
-  two_digits(11, mm, color, true);
-  two_digits(22, ss, color, true);
+    hh = (t / 3600) % 12;
+    mm = (t / 60) % 60;
+    ss = t % 60;
 
-  if(ss % 2){
-    colen(10, tina.Color(25, 25, 25));
-    colen(21, tina.Color(25, 25, 25));
+    bitmap_clear();
+    two_digits(0, hh, color, leading_zero_f);
+    two_digits(11, mm, color, true);
+    two_digits(22, ss, color, true);
+
+    if(ss % 2){
+      colen(10, tina.Color(25, 25, 25));
+      colen(21, tina.Color(25, 25, 25));
+    }
+    else{
+      colen(9, tina.Color(25, 25, 25));
+      colen(20, tina.Color(25, 25, 25));
+    }  
   }
-  else{
-    colen(9, tina.Color(25, 25, 25));
-    colen(20, tina.Color(25, 25, 25));
-  }  
 }
 
 // display rgb image stored in global r_, g_ and b_bitmap variables
@@ -149,16 +154,22 @@ uint32_t brightness = tina.Color(25, 25, 25);
 
 void clock_loop(){
   display_time(next_time, tina.Color(0, 0, 25), false);
-  display_bitmap(brightness);
+  if(update_required){
+    Serial.println("UPDATE");
+    display_bitmap(brightness);
+    update_required = false;
+  }
   if(event == BUTTON_UP){
     start_time = getTime() + 10;
     mode = MODE_RACE;
   }
   if(event == BUTTON_LEFT){
     brightness += tina.Color(5, 5, 5);
+    update_required = true;
   }
   else if(event == BUTTON_RIGHT){
     brightness -= tina.Color(5, 5, 5);
+    update_required = true;
   }
   else if(event == BUTTON_MIDDLE){
     mode = MODE_HH;
@@ -172,12 +183,19 @@ void race_loop(){
   else{
     display_time(next_time - start_time, tina.Color(0, 25, 0), true);
   }
-  display_bitmap(brightness);
+  if(update_required){
+    Serial.println("UPDATE");
+    display_bitmap(brightness);
+    update_required = false;
+  }
+
   if(event == BUTTON_LEFT){
     brightness += tina.Color(5, 5, 5);
+    update_required = true;
   }
   else if(event == BUTTON_RIGHT){
     brightness -= tina.Color(5, 5, 5);
+    update_required = true;
   }
 }
 
@@ -227,6 +245,8 @@ void set_mm_loop(){
   }
 }
 void set_ss_loop(){
+  uint32_t temp_time;
+
   display_time(next_time, tina.Color(25, 0, 0), false);
   for(uint8_t ii = 23; ii < 29; ii++){
     rgb_setpixel(ii, 0, tina.Color(1, 0, 0));
@@ -241,18 +261,17 @@ void set_ss_loop(){
   else if(event == BUTTON_DOWN){
     mode = MODE_MM;
   }
-  else if(event == BUTTON_LEFT){
-    setRTC(getTime() + 1);
-  }
-  else if(event == BUTTON_RIGHT){
-    setRTC(getTime() - 1);
+  else if(event == BUTTON_LEFT || event == BUTTON_RIGHT){
+    temp_time = getTime();
+    temp_time -= temp_time % 60;
+    setRTC(temp_time);
   }
 }
 
 void loop(){
   uint8_t next_second;
   
-  next_time = getTime() + 1; // now() might jump a fraction of a second here or there, getTime() goes direct to the DS3231
+  next_time = getTime(); // now() might jump a fraction of a second here or there, getTime() goes direct to the DS3231
   if(mode == MODE_CLOCK){
     clock_loop();
   }
