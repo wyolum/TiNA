@@ -6,6 +6,9 @@
 TiNA::TiNA(){
 }
 bool TiNA::setup(int _n_tim){
+  setup(_n_tim, false);
+}
+bool TiNA::setup(int _n_tim, bool use_sd){
   bool status = true;
   n_tim = _n_tim;
   n_led_per_strip = n_tim * 16;
@@ -14,7 +17,14 @@ bool TiNA::setup(int _n_tim){
   pinMode(BUTTONPIN, INPUT); 
   digitalWrite(BUTTONPIN, HIGH); 
 
-  if (!SD.begin(SD_CS)) {
+  if(!use_sd){
+    for(uint8_t i = 0; i < N_STRIP; i++){
+      // all strips share the same buffer
+      strips[i].setup(n_led_per_strip, pins[i], NEO_GRB + NEO_KHZ800, buffer);
+    }
+    error_code = TINA_OK;
+  }
+  else if (!SD.begin(SD_CS)) {
     error_code = TINA_SD_INIT_ERROR;
     status = false;
   }

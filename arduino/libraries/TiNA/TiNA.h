@@ -66,6 +66,7 @@ class TiNA{
 
   // call in arduino setup function
   bool setup(int n_tim);
+  bool setup(int n_tim, bool use_sd);
 
   // clear the display
   void clear();
