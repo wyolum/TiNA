@@ -3,9 +3,9 @@ $fn=100;
 mm = 1;
 inch = 25.4 * mm;
 
-LENGTH = 1.3 * inch;
+LENGTH = .75 * inch;
 THICKNESS = .2 * inch;
-OFFSET = .8 * inch;
+OFFSET = .4 * inch;
 
 HEX_R = 6.1 * mm / 2;
 HEX_r = 5.6 * mm / 2;
@@ -20,31 +20,45 @@ module hex(){
   }
 }
 
-module corner(){
-intersection(){
-difference(){
-  cube(LENGTH);
-  translate([THICKNESS, THICKNESS, THICKNESS])
-    cube(LENGTH);
-  translate([OFFSET, OFFSET, 0])
-    translate([0, 0, -1])
-    cylinder(r=1.5*mm, h=2 * THICKNESS);
-  translate([OFFSET, 0, OFFSET])
-    rotate(v=[-1, 0, 0], a=90) 
-    translate([0, 0, -1])
-    cylinder(r=1.5*mm, h=2 * THICKNESS);
-  translate([0, OFFSET, OFFSET])
-    rotate(v=[0, 1, 0], a=90)
-    translate([0, 0, -1])
-    cylinder(r=1.5*mm, h=2 * THICKNESS);
- }
+TAB_HEIGHT = .5*mm;
+TAB_R = 5*mm;
+// tab to prevent rollup
+module tab(x, y){
+  translate([x, y])cylinder(r=TAB_R, h=TAB_HEIGHT);
+}
 
-union(){
-  rotate(v=[0, 0, -1], a=0)cylinder(r=LENGTH*1.02, h=THICKNESS);
-  rotate(v=[-1,0, 0], a=90)cylinder(r=LENGTH*1.02, h=THICKNESS);
-  rotate(v=[0, 1, 0], a=90)cylinder(r=LENGTH*1.02, h=THICKNESS);
-}
-}
+module corner(){
+  union(){
+    tab(0, 0);
+    tab(LENGTH, 0);
+    tab(0, LENGTH);
+
+    intersection(){
+      difference(){
+	cube(LENGTH);
+	translate([THICKNESS, THICKNESS, THICKNESS])
+	  cube(LENGTH);
+	translate([OFFSET, OFFSET, 0])
+	  translate([0, 0, -1])
+	  cylinder(r=1.5*mm, h=2 * THICKNESS);
+	translate([OFFSET, 0, OFFSET])
+	  rotate(v=[-1, 0, 0], a=90) 
+	  translate([0, 0, -1])
+	  cylinder(r=1.5*mm, h=2 * THICKNESS);
+	translate([0, OFFSET, OFFSET])
+	  rotate(v=[0, 1, 0], a=90)
+	  translate([0, 0, -1])
+	  cylinder(r=1.5*mm, h=2 * THICKNESS);
+      }
+      
+      union(){
+	rotate(v=[0, 0, -1], a=0)cylinder(r=LENGTH*1.04, h=THICKNESS);
+	rotate(v=[-1,0, 0], a=90)cylinder(r=LENGTH*1.04, h=THICKNESS);
+	rotate(v=[0, 1, 0], a=90)cylinder(r=LENGTH*1.04 , h=THICKNESS);
+      }
+      // sphere(r=LENGTH);
+    }
+  }
 }
 module inside_corner(){
   difference(){
@@ -78,7 +92,9 @@ module outside_corner(){
     cylinder(r=HEX_R * 1.1);
   }
 }
-corner();
-translate([2 * inch, 0, 0])outside_corner();
-translate([-2 * inch, 0, 0])inside_corner();
+//corner();
+//translate([2 * inch, 0, 0])outside_corner();
+cube(1);
+//translate([-2 * inch, 0, 0])
+inside_corner();
 
