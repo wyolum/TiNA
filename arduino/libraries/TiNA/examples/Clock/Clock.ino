@@ -52,15 +52,17 @@ void bitmap_clear(){
 }
 
 void bitmap_setpixel(uint8_t x, uint8_t y, uint8_t *bitmap, bool val){
-  if(val){
-    bitmap[x] |= ((uint8_t)1) << y;
-  }
-  else{
-    // bitmap[x] |= ((uint8_t)val) << y;
+  if(x < 32 && y < 8){
+    if(val){
+      bitmap[x] |= ((uint8_t)1) << y;
+    }
+    else{
+      // bitmap[x] |= ((uint8_t)val) << y;
+    }
   }
 }
 
-void rgb_setpixel(uint8_t x, uint8_t y, uint32_t color){
+void rgb_setpixel(int x, int y, uint32_t color){
   uint8_t r, g, b;
   tina.color2rgb(color, &r, &g, &b);
   bitmap_setpixel(x, y, r_bitmap, r > 0);
@@ -68,11 +70,11 @@ void rgb_setpixel(uint8_t x, uint8_t y, uint32_t color){
   bitmap_setpixel(x, y, b_bitmap, b > 0);
 }
 
-void set4x7_digit(uint8_t x, uint8_t y, uint8_t digit, uint32_t color){
+void set4x7_digit(int x, int y, uint8_t digit, uint32_t color){
   uint8_t val;
   uint8_t bit;
 
-  for(uint8_t i=x; i<x + 4; i++){
+  for(int i=x; i<x + 4; i++){
     val = digits[4 * digit + i - x];
     //Serial.println(val);
     for(uint8_t j = 0; j < 7; j++){
@@ -84,7 +86,7 @@ void set4x7_digit(uint8_t x, uint8_t y, uint8_t digit, uint32_t color){
 
 void setup(){
   Serial.begin(115200);
-  if(!tina.setup(3)){
+  if(!tina.setup(4)){
     Serial.print("TiNA setup failed.  Error code:");
     Serial.println(tina.error_code);
   }
@@ -98,7 +100,7 @@ void setup(){
   tina.clear();
 }
 
-void two_digits(uint8_t x, uint8_t val, uint32_t color, bool leading_zero_f){
+void two_digits(int x, uint8_t val, uint32_t color, bool leading_zero_f){
   if(val / 10 || leading_zero_f){
     set4x7_digit(x, 1, val/10, color);
   }
@@ -114,22 +116,20 @@ void display_time(uint32_t t, uint32_t color, bool leading_zero_f){
     update_required = true;
 
     hh = (t / 3600) % 12;
+    if (hh == 0 && mode != MODE_RACE){
+      hh = 12;
+    }
     mm = (t / 60) % 60;
     ss = t % 60;
 
     bitmap_clear();
-    two_digits(0, hh, color, leading_zero_f);
+    two_digits(-1, hh, color, leading_zero_f);
     two_digits(11, mm, color, true);
-    two_digits(22, ss, color, true);
+    two_digits(23, ss, color, true);
 
-    if(ss % 2){
-      colen(10, tina.Color(25, 25, 25));
-      colen(21, tina.Color(25, 25, 25));
-    }
-    else{
-      colen(9, tina.Color(25, 25, 25));
-      colen(20, tina.Color(25, 25, 25));
-    }  
+    uint32_t colen_color = color;
+    colen(9, colen_color);
+    colen(21, colen_color);
   }
 }
 
@@ -142,6 +142,11 @@ void display_bitmap(uint32_t color){
       tina.strips[j].pixels[3 * i + 1] = r * (r_bitmap[i] >> j & 1);
       tina.strips[j].pixels[3 * i + 0] = g * (g_bitmap[i] >> j & 1);
       tina.strips[j].pixels[3 * i + 2] = b * (b_bitmap[i] >> j & 1);
+
+      // get back side too
+      tina.strips[j].pixels[3 * i + 1 + 32 * 3] = r * (r_bitmap[i] >> j & 1);
+      tina.strips[j].pixels[3 * i + 0 + 32 * 3] = g * (g_bitmap[i] >> j & 1);
+      tina.strips[j].pixels[3 * i + 2 + 32 * 3] = b * (b_bitmap[i] >> j & 1);
     }
     tina.strips[j].changed = true;
     tina.strips[j].show();
@@ -150,25 +155,25 @@ void display_bitmap(uint32_t color){
 
 uint32_t count = 0;
 uint32_t last_update = 0;
-uint32_t brightness = tina.Color(25, 25, 25);
+uint32_t brightness = tina.Color(255, 255, 255);
 
 void clock_loop(){
   display_time(next_time, tina.Color(0, 0, 25), false);
   if(update_required){
-    Serial.println("UPDATE");
+    //Serial.println("UPDATE");
     display_bitmap(brightness);
     update_required = false;
   }
-  if(event == BUTTON_UP){
+  if(event == BUTTON_RIGHT){
     start_time = getTime() + 10;
     mode = MODE_RACE;
   }
-  if(event == BUTTON_LEFT){
-    brightness += tina.Color(5, 5, 5);
+  if(event == BUTTON_UP){
+    brightness += tina.Color(4, 4, 4);
     update_required = true;
   }
-  else if(event == BUTTON_RIGHT){
-    brightness -= tina.Color(5, 5, 5);
+  else if(event == BUTTON_DOWN){
+    brightness -= tina.Color(4, 4, 4);
     update_required = true;
   }
   else if(event == BUTTON_MIDDLE){
@@ -178,23 +183,23 @@ void clock_loop(){
 
 void race_loop(){
   if(start_time > getTime()){
-    display_time(start_time - next_time, tina.Color(25, 0, 0), true);
+    display_time(start_time - next_time, tina.Color(25, 0, 0), false);
   }
   else{
-    display_time(next_time - start_time, tina.Color(0, 25, 0), true);
+    display_time(next_time - start_time, tina.Color(0, 25, 0), false);
   }
   if(update_required){
-    Serial.println("UPDATE");
+    //Serial.println("UPDATE");
     display_bitmap(brightness);
     update_required = false;
   }
 
-  if(event == BUTTON_LEFT){
-    brightness += tina.Color(5, 5, 5);
+  if(event == BUTTON_UP){
+    brightness += tina.Color(4, 4, 4);
     update_required = true;
   }
-  else if(event == BUTTON_RIGHT){
-    brightness -= tina.Color(5, 5, 5);
+  else if(event == BUTTON_DOWN){
+    brightness -= tina.Color(4, 4, 4);
     update_required = true;
   }
 }
