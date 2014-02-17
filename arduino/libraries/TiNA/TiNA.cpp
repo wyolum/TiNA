@@ -14,8 +14,11 @@ bool TiNA::setup(int _n_tim, bool use_sd){
   n_led_per_strip = n_tim * 16;
   n_byte_per_strip = n_led_per_strip * N_BYTE_PER_LED;
 
+  pinMode(LED_PIN, INPUT);
+  digitalWrite(LED_PIN, LOW); 
+  
   pinMode(BUTTONPIN, INPUT); 
-  digitalWrite(BUTTONPIN, HIGH); 
+  digitalWrite(BUTTONPIN, HIGH) ;
 
   if(!use_sd){
     for(uint8_t i = 0; i < N_STRIP; i++){

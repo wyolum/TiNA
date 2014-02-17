@@ -497,3 +497,19 @@ uint32_t Adafruit_NeoPixel::getPixelColor(uint16_t n) {
 uint16_t Adafruit_NeoPixel::numPixels(void) {
   return numLEDs;
 }
+
+/* NEW CODE FROM Ankit */
+
+uint8_t * Adafruit_NeoPixel::getRow() {
+  return pixels;
+}
+
+void Adafruit_NeoPixel::setRow(uint8_t * _pixels) {
+  memcpy(pixels,_pixels,numBytes);
+  changed = true;  
+}
+
+void Adafruit_NeoPixel::clearRow() {
+  memset(pixels,0,numBytes);
+  changed = true;
+}

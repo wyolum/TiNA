@@ -31,6 +31,7 @@ const uint8_t TINA_SD_INIT_ERROR = 1;
 const uint8_t TINA_FONT_OPEN_ERROR = 2;
 const uint8_t TINA_DSP_OPEN_ERROR = 3;
 
+const uint8_t LED_PIN = 13;
 const uint8_t BUTTONPIN = A6;
 const uint8_t BUTTON_NONE = 0;
 const uint8_t BUTTON_UP = 1;

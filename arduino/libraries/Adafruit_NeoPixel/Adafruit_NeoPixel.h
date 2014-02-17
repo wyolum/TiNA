@@ -54,6 +54,9 @@ class Adafruit_NeoPixel {
   uint32_t
     Color(uint8_t r, uint8_t g, uint8_t b),
     getPixelColor(uint16_t n);
+    uint8_t * getRow(void);
+    void setRow(uint8_t *);
+    void clearRow(void);
 
 
   // moved to public to expose to serial interaction justin@wyolum.com
