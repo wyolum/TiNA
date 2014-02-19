@@ -43,6 +43,10 @@ uint8_t mode = MODE_CLOCK;
 
 uint8_t event = BUTTON_NONE;
 
+uint32_t count = 0;
+uint32_t last_update = 0;
+uint32_t brightness = tina.Color(255, 255, 255);
+
 
 // Serial Messaging
 /********************************************************************************/
@@ -50,6 +54,7 @@ uint8_t event = BUTTON_NONE;
  * This is a input/output buffer for serial communications.  
  * This buffer is also used for some non-serial processing to save memory.
  */
+const uint32_t SERIAL_TIMEOUT_MS = 100;
 const uint8_t MAX_MSG_LEN = 100; // official: 100
 char serial_msg[MAX_MSG_LEN];
 uint8_t serial_msg_len;       // Stores actual length of serial message.  Should be updated upon transmit or reciept.
@@ -131,7 +136,7 @@ void pong(){
 
 // store serial data into serial_msg staring from first byte AFTER MID
 // to be clear MID is not in serial_msg
-boolean Serial_get_msg(uint8_t n_byte) {
+boolean Serial_get_msg(uint8_t n_byte, uint32_t timeout_ms) {
   /*
     n_byte = message length including 1 byte MID
   */
@@ -140,9 +145,9 @@ boolean Serial_get_msg(uint8_t n_byte) {
 
   uint8_t val, next;
   boolean out;
+  uint32_t start = millis();
 
-  while((i < n_byte - 1)){/* && 
-			     ((millis() - start_time) < SERIAL_TIMEOUT_MS)){*/
+  while((i < n_byte - 1) && ((millis() - start_time) < timeout_ms)){
     if(Serial.available()){
       val = Serial.read();
       if (val == SYNC_BYTE){
@@ -179,7 +184,7 @@ void Serial_loop(void) {
     val = Serial.read();
     for(uint8_t msg_i = 0; msg_i < N_MSG_TYPE; msg_i++){
       if(MSG_DEFS[msg_i]->id == val){
-	if(Serial_get_msg(MSG_DEFS[msg_i]->n_byte)){
+	if(Serial_get_msg(MSG_DEFS[msg_i]->n_byte, SERIAL_TIMEOUT_MS)){
 	  /*
 	   * Entire payload (n_byte - 1) bytes 
 	   * is stored in serial_msg: callback time.
@@ -270,11 +275,11 @@ void set4x7_digit(int x, int y, uint8_t digit, uint32_t color){
 void setup(){
   Serial.begin(115200);
   if(!tina.setup(4)){
-    Serial.print("TiNA setup failed.  Error code:");
-    Serial.println(tina.error_code);
+    // Serial.print("TiNA setup failed.  Error code:");
+    // Serial.println(tina.error_code);
   }
   else{
-    Serial.println("TiNA setup ok");
+    // Serial.println("TiNA setup ok");
   }
   Wire.begin();
   setSyncProvider(getTime);      // RTC
@@ -336,10 +341,6 @@ void display_bitmap(uint32_t color){
   }
 }
 
-uint32_t count = 0;
-uint32_t last_update = 0;
-uint32_t brightness = tina.Color(255, 255, 255);
-
 void clock_loop(){
   display_time(next_time, tina.Color(0, 0, 25), false);
   if(update_required){
@@ -348,15 +349,20 @@ void clock_loop(){
     update_required = false;
   }
   if(event == BUTTON_RIGHT){
+    // rgb_setpixel(0, 0, 1);  display_bitmap(brightness);  while(1) delay(100); /// DBG LINE
     start_time = getTime() + 10;
     mode = MODE_RACE;
   }
   if(event == BUTTON_UP){
-    brightness += tina.Color(4, 4, 4);
+    if(brightness % 256 < 250){
+      brightness += tina.Color(4, 4, 4);
+    }
     update_required = true;
   }
   else if(event == BUTTON_DOWN){
-    brightness -= tina.Color(4, 4, 4);
+    if(brightness % 256 > 4){
+      brightness -= tina.Color(4, 4, 4);
+    }
     update_required = true;
   }
   else if(event == BUTTON_MIDDLE){
@@ -378,11 +384,15 @@ void race_loop(){
   }
 
   if(event == BUTTON_UP){
-    brightness += tina.Color(4, 4, 4);
+    if(brightness % 256 < 250){
+      brightness += tina.Color(4, 4, 4);
+    }
     update_required = true;
   }
   else if(event == BUTTON_DOWN){
-    brightness -= tina.Color(4, 4, 4);
+    if(brightness % 256 > 4){
+      brightness -= tina.Color(4, 4, 4);
+    }
     update_required = true;
   }
 }
