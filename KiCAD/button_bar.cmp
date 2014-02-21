@@ -1,94 +1,101 @@
-Cmp-Mod V01 Created by CvPcb (2013-mar-13)-testing date = Tue 18 Feb 2014 08:12:44 PM EST
+Cmp-Mod V01 Created by CvPcb (2013-mar-13)-testing date = Thursday 20 February 2014 11:00:23 PM IST
+
+BeginCmp
+TimeStamp = /53063C03;
+Reference = C1;
+ValeurCmp = 100n;
+IdModule  = C2;
+EndCmp
 
 BeginCmp
 TimeStamp = /53040325;
 Reference = P1;
-ValeurCmp = CONN_4;
-IdModule  = PIN_ARRAY_4x1;
+ValeurCmp = Buttons;
+IdModule  = SIL-4;
 EndCmp
 
 BeginCmp
 TimeStamp = /5303F9C3;
 Reference = R1;
 ValeurCmp = 1M;
-IdModule  = R3;
+IdModule  = RC03;
 EndCmp
 
 BeginCmp
 TimeStamp = /5304004E;
 Reference = R2;
 ValeurCmp = 10K;
-IdModule  = R3;
+IdModule  = RC03;
 EndCmp
 
 BeginCmp
 TimeStamp = /53040045;
 Reference = R3;
 ValeurCmp = 10K;
-IdModule  = R3;
+IdModule  = RC03;
 EndCmp
 
 BeginCmp
 TimeStamp = /5304003A;
 Reference = R4;
 ValeurCmp = 10K;
-IdModule  = R3;
+IdModule  = RC03;
 EndCmp
 
 BeginCmp
 TimeStamp = /53040032;
 Reference = R5;
 ValeurCmp = 10K;
-IdModule  = R3;
+IdModule  = RC03;
 EndCmp
 
 BeginCmp
 TimeStamp = /5303FB7E;
 Reference = R10;
 ValeurCmp = 10K;
-IdModule  = R3;
+IdModule  = RC03;
 EndCmp
 
 BeginCmp
 TimeStamp = /5303F58A;
 Reference = SW1;
 ValeurCmp = SW_UP;
-IdModule  = SW_PUSH-12mm;
+IdModule  = SW-PB;
 EndCmp
 
 BeginCmp
 TimeStamp = /5303F7D6;
 Reference = SW2;
 ValeurCmp = SW_DN;
-IdModule  = SW_PUSH-12mm;
+IdModule  = SW-PB;
 EndCmp
 
 BeginCmp
 TimeStamp = /5303F7F8;
 Reference = SW3;
 ValeurCmp = SW_OK;
-IdModule  = SW_PUSH-12mm;
+IdModule  = SW-PB;
 EndCmp
 
 BeginCmp
 TimeStamp = /5303F804;
 Reference = SW4;
 ValeurCmp = SW_LT;
-IdModule  = SW_PUSH-12mm;
+IdModule  = SW-PB;
 EndCmp
 
 BeginCmp
 TimeStamp = /5303F810;
 Reference = SW5;
 ValeurCmp = SW_RT;
-IdModule  = SW_PUSH-12mm;
+IdModule  = SW-PB;
 EndCmp
 
 BeginCmp
 TimeStamp = /53040466;
 Reference = SW6;
 ValeurCmp = RESET;
-IdModule  = SW_PUSH_SMALL;
+IdModule  = SW-PB;
 EndCmp
 
 EndListe

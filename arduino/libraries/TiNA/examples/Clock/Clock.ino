@@ -45,8 +45,8 @@ uint8_t event = BUTTON_NONE;
 
 uint32_t count = 0;
 uint32_t last_update = 0;
-uint32_t brightness = tina.Color(255, 255, 255);
-
+uint32_t brightness = tina.Color(160, 160, 160);
+// [5, 10, 20, 40, 80, 160, 255] valid brightness values
 
 // Serial Messaging
 /********************************************************************************/
@@ -107,7 +107,7 @@ void Time_to_Serial(time_t in, char *out){
 void send_time(){
   char ser_data[4];
   Serial.write(ABS_TIME_SET.id);
-  Time_to_Serial(now(), ser_data);
+  Time_to_Serial(now() - start_time, ser_data);
   for(uint8_t i = 0; i < 4; i++){
     Serial.write(ser_data[i]);
   }
@@ -341,6 +341,28 @@ void display_bitmap(uint32_t color){
   }
 }
 
+void brighten(){
+  if(brightness % 256 <= 128){
+    brightness *= 2;
+  }
+  else{
+    brightness = tina.Color(255, 255, 255);
+  }
+  update_required = true;
+}
+void dim(){
+  if(brightness % 256 > 160){
+    brightness = tina.Color(160, 160, 160);
+  }
+  else  if(brightness % 256 >= 10){
+    brightness /= 2;
+  }
+  else{
+    brightness = tina.Color(5, 5, 5);
+  }
+  update_required = true;
+}
+
 void clock_loop(){
   display_time(next_time, tina.Color(0, 0, 25), false);
   if(update_required){
@@ -354,19 +376,16 @@ void clock_loop(){
     mode = MODE_RACE;
   }
   if(event == BUTTON_UP){
-    if(brightness % 256 < 250){
-      brightness += tina.Color(4, 4, 4);
-    }
-    update_required = true;
+    brighten();
   }
   else if(event == BUTTON_DOWN){
-    if(brightness % 256 > 4){
-      brightness -= tina.Color(4, 4, 4);
-    }
-    update_required = true;
+    dim();
   }
   else if(event == BUTTON_MIDDLE){
     mode = MODE_HH;
+    display_time(next_time, tina.Color(25, 0, 0), false);
+    update_required = true;
+    display_bitmap(brightness);
   }
 }
 
@@ -384,16 +403,10 @@ void race_loop(){
   }
 
   if(event == BUTTON_UP){
-    if(brightness % 256 < 250){
-      brightness += tina.Color(4, 4, 4);
-    }
-    update_required = true;
+    brighten();
   }
   else if(event == BUTTON_DOWN){
-    if(brightness % 256 > 4){
-      brightness -= tina.Color(4, 4, 4);
-    }
-    update_required = true;
+    dim();
   }
 }
 
@@ -407,16 +420,16 @@ void set_hh_loop(){
   if(event == BUTTON_MIDDLE){
     mode = MODE_CLOCK;
   }
-  else if(event == BUTTON_UP){
+  else if(event == BUTTON_RIGHT){
     mode = MODE_MM;
   }
-  else if(event == BUTTON_DOWN){
+  else if(event == BUTTON_LEFT){
     mode = MODE_SS;
   }
-  else if(event == BUTTON_LEFT){
+  else if(event == BUTTON_UP){
     setRTC(getTime() + 3600);
   }
-  else if(event == BUTTON_RIGHT){
+  else if(event == BUTTON_DOWN){
     setRTC(getTime() - 3600);
   }
 }
@@ -429,16 +442,16 @@ void set_mm_loop(){
   if(event == BUTTON_MIDDLE){
     mode = MODE_CLOCK;
   }
-  else if(event == BUTTON_UP){
+  else if(event == BUTTON_RIGHT){
     mode = MODE_SS;
   }
-  else if(event == BUTTON_DOWN){
+  else if(event == BUTTON_LEFT){
     mode = MODE_HH;
   }
-  else if(event == BUTTON_LEFT){
+  else if(event == BUTTON_UP){
     setRTC(getTime() + 60);
   }
-  else if(event == BUTTON_RIGHT){
+  else if(event == BUTTON_DOWN){
     setRTC(getTime() - 60);
   }
 }
@@ -453,10 +466,10 @@ void set_ss_loop(){
   if(event == BUTTON_MIDDLE){
     mode = MODE_CLOCK;
   }
-  else if(event == BUTTON_UP){
+  else if(event == BUTTON_RIGHT){
     mode = MODE_HH;
   }
-  else if(event == BUTTON_DOWN){
+  else if(event == BUTTON_LEFT){
     mode = MODE_MM;
   }
   else if(event == BUTTON_LEFT || event == BUTTON_RIGHT){
