@@ -1,13 +1,23 @@
-update=Thursday 20 February 2014 10:55:33 PM IST
+update=Friday 21 February 2014 10:40:12 PM IST
 version=1
-last_client=eeschema
+last_client=kicad
 [cvpcb]
 version=1
 NetIExt=net
 [cvpcb/libraries]
 EquName1=devcms
-[general]
+[eeschema]
 version=1
+LibDir=
+NetFmtName=
+RptD_X=0
+RptD_Y=100
+RptLab=1
+LabSize=60
+[eeschema/libraries]
+LibName1=power
+LibName2=device
+LibName3=conn
 [pcbnew]
 version=1
 LastNetListRead=
@@ -30,15 +40,5 @@ ModuleOutlineThickness="    0.150000"
 [pcbnew/libraries]
 LibDir=
 LibName1=button_board_fp
-[eeschema]
+[general]
 version=1
-LibDir=
-NetFmtName=
-RptD_X=0
-RptD_Y=100
-RptLab=1
-LabSize=60
-[eeschema/libraries]
-LibName1=power
-LibName2=device
-LibName3=conn

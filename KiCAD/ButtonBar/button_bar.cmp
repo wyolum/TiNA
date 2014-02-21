@@ -1,10 +1,38 @@
-Cmp-Mod V01 Created by CvPcb (2013-mar-13)-testing date = Thursday 20 February 2014 11:00:23 PM IST
+Cmp-Mod V01 Created by CvPcb (2013-mar-13)-testing date = Friday 21 February 2014 10:00:07 PM IST
 
 BeginCmp
 TimeStamp = /53063C03;
 Reference = C1;
 ValeurCmp = 100n;
 IdModule  = C2;
+EndCmp
+
+BeginCmp
+TimeStamp = /53077F02;
+Reference = H1;
+ValeurCmp = CONN_1;
+IdModule  = vite_3mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /53077F28;
+Reference = H2;
+ValeurCmp = CONN_1;
+IdModule  = vite_3mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /53077F2E;
+Reference = H3;
+ValeurCmp = CONN_1;
+IdModule  = vite_3mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /53077F34;
+Reference = H4;
+ValeurCmp = CONN_1;
+IdModule  = vite_3mm;
 EndCmp
 
 BeginCmp
@@ -51,7 +79,7 @@ EndCmp
 
 BeginCmp
 TimeStamp = /5303FB7E;
-Reference = R10;
+Reference = R6;
 ValeurCmp = 10K;
 IdModule  = RC03;
 EndCmp
