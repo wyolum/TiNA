@@ -289,11 +289,12 @@ Wire Wire Line
 Connection ~ 4650 3750
 Wire Wire Line
 	4650 3250 4650 3150
-Wire Wire Line
-	4650 3150 4850 3150
-Wire Wire Line
-	4850 3150 4850 4050
 Connection ~ 4850 4050
 Text Label 3875 6150 0    60   ~ 0
 RST
+Wire Wire Line
+	4650 3150 5000 3150
+Wire Wire Line
+	5000 3150 5000 3950
+Connection ~ 5000 3950
 $EndSCHEMATC
