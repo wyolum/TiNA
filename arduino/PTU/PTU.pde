@@ -4,7 +4,6 @@
 #include "Wire.h"
 
 #include "Arduino.h"
-#define WIRE_READ Wire.read();
 #include "SoftwareSerial.h"
 
 #include <TinyGPS++.h>
@@ -40,16 +39,16 @@ const int  PPS_LED = 7;
 const int  SQW_LED = 4;
 const unsigned int RTC_STALE_S = 1800;
 const unsigned int RTC_SECOND_STALE_S = 1000 * 3600;// 1000 hours
-const unsigned long  RTC_WRITE_US = 750;
+const unsigned long  RTC_WRITE_US = 1750;
 const unsigned long OFFSET_US = 1000;
 const uint8_t chipSelect = 10;
+const unsigned long DELTA_TOL = 5000;
 
 void pps_interrupt(){
   unsigned long  now_us = micros();
   _pps_tick_us = (now_us - pps_start_us);
-  // TODO: Nix leds?
   pps_led_state = !pps_led_state;
-  digitalWrite(PPS_LED, sqw_led_state);
+  digitalWrite(PPS_LED, pps_led_state);
   pps_start_us = now_us;
 }
 
@@ -57,7 +56,6 @@ void rtc_interrupt(){
   unsigned long  now_us = micros();
   long drift_us;
   // Serial.println("rtc_interrupt");
-  // TODO: Nix leds?
   sqw_led_state = !sqw_led_state;
   digitalWrite(SQW_LED, sqw_led_state);
   rtc_start_us = now_us;
@@ -83,7 +81,6 @@ bool restore_sync_time(){
     sync_time = Serial_to_time(dat2 + 2);
     last_set_time = Serial_to_time(dat2 + 4);
   }
-  sync_time = 0; // TODO: DELETE THIS LINE
   return out;
 }
 
@@ -126,7 +123,7 @@ void setup()
 
   Serial.begin(115200);
   Serial.println("Precision Timing Unit v1.0");
-  Serial.println("Copyright WyoLum, LLC, 2012");
+  Serial.println("Copyright WyoLum, LLC, 2014");
 
   Wire.begin();
   // From MaceTech.com: set 1Hz reference square wave
@@ -147,14 +144,27 @@ void setup()
   delay(100);
   digitalWrite(PPS_LED, LOW);
   digitalWrite(SQW_LED, LOW);
-  // setRTC(2010, 1, 1, 0, 0, 0); // TODO: DELETE THIS LINE!
+
   set_1Hz_ref(getTime(), SQW_PIN, rtc_interrupt, FALLING);
   Serial.println("Waiting for 1Hz signal");
   while(rtc_start_us == 0){
     delay(100);
   }
-  Serial.println("1Hz signal found");
+  Serial.println("1Hz signal present");
   attachInterrupt(PPS_PIN - 2, pps_interrupt, RISING);
+  smartDelay(1000);
+  if(micros() - pps_start_us < 2e6){
+    Serial.println("1pps signal present.");
+  }
+  else{
+    Serial.println("NO 1pps signal present");
+  }
+  
+  Serial.print("micros() - pps_start_us: ");
+  Serial.println(micros() - pps_start_us);
+
+  setRTC(2010, 1, 1, 0, 0, 0); // DBG!!! TODO:
+
   initialize_clock();
 
   Serial.print("now():");
@@ -165,23 +175,28 @@ void setup()
 
 void initialize_clock(){
 
-  restore_sync_time();
-  if((year() < 2011)){ // first acq
+  if((year() < 2011 or year() > 2040)){ // first acq
     Serial.print("Year:");
     Serial.print(year());
     Serial.println("< 2011");
     sws.begin(9600);
     while(year() < 2011){
       smartDelay(1000);
-      if (gps.time.age() < 1000){
+      Serial.print("gps.time.age(): ");
+      Serial.println(gps.time.age());
+      if (gps.time.age() < 1000 && micros() - pps_start_us < 1e6){
 	setRTC(gps.date.year(), 
 	       gps.date.month(),
 	       gps.date.day(), 
 	       gps.time.hour(), 
 	       gps.time.minute(), 
 	       gps.time.second());
+	Serial.println(year());
+	setTime(getTime());
       }
       Serial.print(gps.date.year());
+      Serial.print(" ");
+      Serial.print(year());
       Serial.print(" ");
       Serial.println(gps.date.age());
     }
@@ -201,8 +216,10 @@ void seconds_sync(){
     sws.begin(9600);
     pause_1Hz();
     start_s = now();
+
+    // wait for next second boundary
     while(now() == start_s){
-      feedgps();
+      smartDelay(0);
     }
     sws.end();
     unpause_1Hz();
@@ -219,68 +236,85 @@ void fine_sync(){
   boolean out = false;
   unsigned long now_s;
   unsigned long target_us;
+  unsigned long delta_us;
   int sec_frac;
   
-  // sync if time is stale and we have a GPS signal
-  if((now() - sync_time > RTC_STALE_S && (micros() - pps_start_us) < 2 * pps_tick_us)){
-    Serial.println("fine_sync()");
-    Serial.print(now());
-    Serial.print("-");
-    Serial.print(sync_time);
-    Serial.print(" ");
-    Serial.println(now() - sync_time);
-    now_s = now();
-    Serial.println("Time stale");
-
-    // have YYMMDD hhmmss, now synchronize pulses
-    // 1. let tick times settle
-    for(int i = 0; i < 3; i++){
-      wait_for_next_gps_second();
-    }
-    target_us = 0;
-    while(target_us < pps_start_us){ // watch for integer overflow
-      // 2. wait for start of next second
-      wait_for_next_gps_second();
-      target_us = pps_start_us + pps_tick_us;
-    }
-    // 3. compute next second
-    now_s = now();
-    sec_frac = millisecond();
-    if(sec_frac > 500){
-      now_s++;
-    }
-    
-    // 3. pause clock
-    pause_1Hz();
-
-    // 4. wait for expected next rtc pulse
-    // RTC_WRITE_US is the time it takes to set clock
-    // OFFSET_US is to keep the interrupts from colliding.
-    while(micros() < target_us - RTC_WRITE_US + OFFSET_US){
-    }
-    setRTC(now_s + 1);
-
-    // 5. unpause 1Hz
-    unpause_1Hz();
-
-    // 6 check sync
-    for(int i = 0; i < 3; i++){
-      wait_for_next_gps_second();
-    }
-    Serial.print("SYNC RESULT:");
-    Serial.print(rtc_start_us);
-    Serial.print(", ");
-    Serial.print(pps_start_us);
-    Serial.print(", ");
-    if(pps_start_us < rtc_start_us){
-      Serial.println(rtc_start_us - pps_start_us);
+  if((micros() - pps_start_us) < 2 * pps_tick_us){ // fine sync available
+    Serial.println("Fine sync available");
+    if(pps_start_us > rtc_start_us){
+      delta_us = pps_start_us - rtc_start_us;
     }
     else{
-      Serial.print("-");
-      Serial.println(pps_start_us - rtc_start_us);
+      delta_us = rtc_start_us - pps_start_us;
     }
-    sync_time = now();
-    save_sync_time();
+    // sync if time is stale and we have a GPS signal
+    if((now() - sync_time > RTC_STALE_S && (micros() - pps_start_us) < 2 * pps_tick_us) || 
+       delta_us > DELTA_TOL){
+      Serial.println("fine_sync()");
+      Serial.print(now());
+      Serial.print("-");
+      Serial.print(sync_time);
+      Serial.print(" ");
+      Serial.println(now() - sync_time);
+      now_s = now();
+      Serial.println("Time stale");
+
+      // have YYMMDD hhmmss, now synchronize pulses
+      // 1. let tick times settle
+      for(int i = 0; i < 3; i++){
+	wait_for_next_gps_second();
+	Serial.println("gps tick()");
+      }
+      target_us = 0;
+      while(target_us < pps_start_us){ // watch for integer overflow
+	// 2. wait for start of next second
+	wait_for_next_gps_second();
+	target_us = pps_start_us + pps_tick_us;
+      }
+      // 3. compute next second
+      now_s = now();
+      sec_frac = millisecond();
+      if(sec_frac > 500){
+	now_s++;
+      }
+    
+      // 3. pause clock
+      pause_1Hz();
+
+      // 4. wait for expected next rtc pulse
+      // RTC_WRITE_US is the time it takes to set clock
+      // OFFSET_US is to keep the interrupts from colliding.
+      while(micros() < target_us - RTC_WRITE_US + OFFSET_US){
+      }
+      setRTC(now_s + 1);
+
+      // 5. unpause 1Hz
+      unpause_1Hz();
+
+      // 6 check sync
+      for(int i = 0; i < 3; i++){
+	wait_for_next_gps_second();
+	Serial.println("gps tick()");
+      }
+      sqw_led_state = !pps_led_state;
+      Serial.print("SYNC RESULT:");
+      Serial.print(rtc_start_us);
+      Serial.print(", ");
+      Serial.print(pps_start_us);
+      Serial.print(", ");
+      if(pps_start_us < rtc_start_us){
+	Serial.println(rtc_start_us - pps_start_us);
+      }
+      else{
+	Serial.print("-");
+	Serial.println(pps_start_us - rtc_start_us);
+      }
+      sync_time = now();
+      save_sync_time();
+    }
+  }
+  else{
+    Serial.println("Fine sync NOT available");
   }
 }
 
@@ -365,15 +399,17 @@ void loop(){
   if(pps_start_us < rtc_start_us){
     Serial.print(rtc_start_us - pps_start_us);
     if((rtc_start_us - pps_start_us) < 2000){
+      // good to go
     }
     else{
+      // resync
     }
   }
   else{
     Serial.print("-");
     Serial.print(pps_start_us - rtc_start_us);
   }
-  Serial.println(" - 1000");
+  Serial.print(" uS offset, ");
   Serial.print(year());
   Serial.print("/");
   Serial.print(month());
