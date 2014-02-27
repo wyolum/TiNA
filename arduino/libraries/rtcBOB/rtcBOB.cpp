@@ -1,3 +1,4 @@
+#include "inttypes.h"
 #include "Wire.h"
 #include "Time.h"
 #include "rtcBOB.h"
@@ -135,6 +136,39 @@ bool rtc_raw_read(uint8_t addr,
   }
   return out;
 }
+int rtc_getAgingOffset(){
+  uint8_t b[1];
+  int out;
+
+  rtc_raw_read(DS3231_AGING_OFFSET, 1, false, b);
+  if(b[0] > 127){
+    out = (int)b[0] - (int)256;
+  }
+  else{
+    out = (int)b[0];
+  }
+  return out;
+}
+
+// val :-128 to 127
+void rtc_setAgingOffset(int val){
+  uint8_t b[1];
+
+  if(val < -128){
+    val = -128;
+  }
+  if(val > 127){
+    val = 127;
+  }
+  if(val < 0){
+    b[0] = (uint8_t)(256 + val);
+  }
+  else{
+    b[0] = (uint8_t)val;
+  }
+  rtc_raw_write(DS3231_AGING_OFFSET, 1, false, b);
+}
+
 void set_control_reg(){
   // From MaceTech.com
   // set 1Hz reference square wave
@@ -143,6 +177,11 @@ void set_control_reg(){
   WIRE_WRITE1(0b00000000); // write register bitmap, bit 7 is /EOSC
   Wire.endTransmission();
 }
+
+void rtc_set1Hz(){
+  set_control_reg();
+}
+
 void rtc_raw_write(uint8_t addr,
 		   uint8_t n_byte,
 		   bool is_bcd,

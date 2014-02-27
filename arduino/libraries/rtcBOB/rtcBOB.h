@@ -23,6 +23,7 @@
 const uint8_t MONTHS[13] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30,31, 30, 31};
 const int DS3231_ADDR = 104;
 const int DS3231_TEMP_OFFSET = 0x11;
+const int DS3231_AGING_OFFSET = 0x10;
 const int DS3231_ALARM1_OFSET = 0x7;
 
 #define LEAP_YEAR(_Y_) (!((_Y_)%4) && (((_Y_)%100) || !((_Y_)%400)))
@@ -38,8 +39,12 @@ void setRTC(time_t t);
 void setRTC(uint16_t YY, uint8_t MM, uint8_t DD, 
 	    uint8_t hh, uint8_t mm, uint8_t ss);
 void set_control_reg();
+void rtc_set1Hz();
 void getRTC_alarm(uint8_t *ahh, uint8_t *amm, uint8_t *ass, uint8_t *alarm_set);
 void setRTC_alarm(uint8_t ahh, uint8_t amm, uint8_t ass, uint8_t alarm_Set);
+
+int rtc_getAgingOffset();
+void rtc_setAgingOffset(int val); // val :-128 to 127
 
 uint8_t getTempUnit();
 void setTempUnit(uint8_t temp_unit);

@@ -4,8 +4,10 @@ mm = 1;
 inch = 25.4 * mm;
 
 LENGTH = .75 * inch;
-EDGE_WIDTH = .5*inch;
+EDGE_WIDTH = .5 * inch;
 THICKNESS = .2 * inch;
+
+MATERIAL_THICKNESS = 3 * mm;
 OFFSET = .4 * inch;
 
 HEX_R = 6.1 * mm / 2;
@@ -15,7 +17,7 @@ HEX_THICKNESS = 2 * mm;
 //HEX_THICKNESS = 1.5 * mm; // for thin version
 //THICKNESS = 3 * mm; // for thin version
 
-SCREW_R = 1.5 * mm;
+SCREW_R = 1.6 * mm;
 module hex(){
   difference(){
     cylinder(r=HEX_R, h=HEX_THICKNESS);
@@ -65,7 +67,11 @@ module outside_edge(){
   }
 }
 
-module corner(){
+module corner(length, thickness, offset){
+  echo("offset", offset);
+  LENGTH = length;
+  THICKNESS = thickness;
+  OFFSET = offset;
   union(){
     //tab(0, 0);
     //tab(LENGTH, 0);
@@ -98,42 +104,54 @@ module corner(){
     }
   }
 }
-module inside_corner(){
+module inside_corner(length, thickness, offset){
+  LENGTH = length;
+  THICKNESS = thickness;
+  OFFSET = offset;
+
   difference(){
-    corner();
+    corner(LENGTH, THICKNESS, OFFSET);
     translate([OFFSET, OFFSET, THICKNESS - HEX_THICKNESS])scale([1, 1, 100])hex();
     translate([OFFSET, THICKNESS - HEX_THICKNESS,  OFFSET])
       rotate(v=[-1, 0, 0], a=90)
       scale([1, 1, 100])
       hex();
     translate([THICKNESS - HEX_THICKNESS, OFFSET,  OFFSET])
-      rotate(v=[0, 1, 0], a=90)
+      rotate(v=[0, 1, 0], a=90) // correct one!
       scale([1, 1, 100])
       hex();
   }
 }
-module outside_corner(){
+module outside_corner(length, thickness, offset, material_thickness){
+  LENGTH = length + (material_thickness + thickness) * sqrt(2);
+  THICKNESS = thickness;
+  OFFSET = offset + material_thickness + thickness;
+  echo("OFFSET", OFFSET);
   difference(){
-    corner();
-  translate([OFFSET,  HEX_THICKNESS, OFFSET])
-    rotate(v=[1, 0, 0], a=90)
-    rotate(v=[0, 0, 1], a=180)
-    scale([1, 1, 100])
-    cylinder(r=HEX_R * 1.1);
-  translate([HEX_THICKNESS, OFFSET, OFFSET])
-    rotate(v=[0, -1, 0], a=90)
-    scale([1, 1, 100])
-    cylinder(r=HEX_R * 1.1);
-  translate([OFFSET,  OFFSET, HEX_THICKNESS, ])
-    rotate(v=[0, 1, 0], a=180)
-    scale([1, 1, 100])
-    cylinder(r=HEX_R * 1.1);
+    union(){
+      corner(LENGTH, THICKNESS, OFFSET);
+    }
+
+    // counter bore
+    translate([OFFSET,  HEX_THICKNESS, OFFSET])
+      rotate(v=[1, 0, 0], a=90)
+      rotate(v=[0, 0, 1], a=180)
+      scale([1, 1, 100])
+      cylinder(r=HEX_R * 1.1);
+    translate([HEX_THICKNESS, OFFSET, OFFSET])
+      rotate(v=[0, -1, 0], a=90)
+      scale([1, 1, 100])
+      cylinder(r=HEX_R * 1.1);
+    translate([OFFSET,  OFFSET, HEX_THICKNESS, ])
+      rotate(v=[0, 1, 0], a=180)
+      scale([1, 1, 100])
+      cylinder(r=HEX_R * 1.1);
   }
 }
 
-//corner();
-//translate([2 * inch, 0, 0])outside_corner();
+//translate([0, MATERIAL_THICKNESS + THICKNESS, MATERIAL_THICKNESS + THICKNESS])inside_corner(LENGTH, THICKNESS, OFFSET);
+translate([-MATERIAL_THICKNESS - THICKNESS, 0, 0])outside_corner(LENGTH, THICKNESS, OFFSET, MATERIAL_THICKNESS);
 //translate([-2 * inch, 0, 0])
 // inside_corner();
-inside_edge();
+// inside_edge();
 

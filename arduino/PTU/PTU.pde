@@ -124,8 +124,10 @@ void setup()
   Serial.begin(115200);
   Serial.println("Precision Timing Unit v1.0");
   Serial.println("Copyright WyoLum, LLC, 2014");
-
+  
   Wire.begin();
+  rtc_set1Hz();
+  
   // From MaceTech.com: set 1Hz reference square wave
   Wire.beginTransmission(0x68); // address DS3231
   WIRE_WRITE1(0x0E); // select register
@@ -184,7 +186,9 @@ void initialize_clock(){
       smartDelay(1000);
       Serial.print("gps.time.age(): ");
       Serial.println(gps.time.age());
-      if (gps.time.age() < 1000 && micros() - pps_start_us < 1e6){
+      if (gps.time.isValid() && 
+	  (gps.time.age() < 1000)){
+	// (micros() - (pps_start_us < 1e6))){
 	setRTC(gps.date.year(), 
 	       gps.date.month(),
 	       gps.date.day(), 
@@ -195,6 +199,8 @@ void initialize_clock(){
 	setTime(getTime());
       }
       Serial.print(gps.date.year());
+      Serial.print(" ");
+      Serial.print(gps.time.isValid());
       Serial.print(" ");
       Serial.print(year());
       Serial.print(" ");
@@ -409,6 +415,10 @@ void loop(){
     Serial.print("-");
     Serial.print(pps_start_us - rtc_start_us);
   }
+  rtc_setAgingOffset(count++ / 8 %256 - 128);
+  Serial.print(", aging offset:");
+  Serial.print(rtc_getAgingOffset());
+  
   Serial.print(" uS offset, ");
   Serial.print(year());
   Serial.print("/");
@@ -423,8 +433,8 @@ void loop(){
   Serial.print(second());
   Serial.println();
 
-  fine_sync();
-  delay(10000);
+  // fine_sync();
+  delay(2000);
 }
 
 void do_nothing(){
