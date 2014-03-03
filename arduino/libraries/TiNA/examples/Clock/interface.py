@@ -16,6 +16,8 @@ def set_gmt_offset(offset):
 def getSerialports():
     if sys.platform.startswith('win'): # windows
         out = []
+        # print 'HARD CODED HACK ON NEXT LINE'
+        return ['COM6'] 
         import scanwin32
         for order, port, desc, hwid in sorted(scanwin32.comports()):
             print( "%-10s: %s (%s) ->" % (port, desc, hwid),)
