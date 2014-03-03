@@ -8,6 +8,7 @@
 
 TiNA tina;
 
+bool flip = false;
 uint16_t YY;
 uint8_t MM;
 uint8_t DD;
@@ -39,14 +40,16 @@ const uint8_t MODE_MM = 2;
 const uint8_t MODE_SS = 3;
 const uint8_t MODE_RACE = 4;
 const uint8_t N_MODE = 5;
+const uint32_t DEBOUNCE_MS = 100;
+const uint32_t LONG_HOLD_MS = 1000;
+
 uint8_t mode = MODE_CLOCK;
-
 uint8_t event = BUTTON_NONE;
-
+uint32_t min_hold = DEBOUNCE_MS;
 uint32_t count = 0;
 uint32_t last_update = 0;
-uint32_t brightness = tina.Color(160, 160, 160);
-// [5, 10, 20, 40, 80, 160, 255] valid brightness values
+uint32_t brightness = tina.Color(5, 5, 5);
+// [0, 5, 10, 20, 40, 80, 160, 255] valid brightness values
 
 // Serial Messaging
 /********************************************************************************/
@@ -325,24 +328,42 @@ void display_time(uint32_t t, uint32_t color, bool leading_zero_f){
 void display_bitmap(uint32_t color){
   uint8_t r, g, b;
   tina.color2rgb(color, &r, &g, &b);
+  uint8_t ii;
+  uint8_t jj;
+  
   for(uint8_t j = 0; j < 8; j++){
+    if(flip){
+      jj = 7 - j;
+    }
+    else{
+      jj = j;  
+    }
     for(uint8_t i = 0; i < 32; i++){
-      tina.strips[j].pixels[3 * i + 1] = r * (r_bitmap[i] >> j & 1);
-      tina.strips[j].pixels[3 * i + 0] = g * (g_bitmap[i] >> j & 1);
-      tina.strips[j].pixels[3 * i + 2] = b * (b_bitmap[i] >> j & 1);
+      if(flip){
+        ii = 31 - i;
+      }
+      else{
+        ii = i;
+      }
+      tina.strips[jj].pixels[3 * ii + 1] = r * (r_bitmap[i] >> j & 1);
+      tina.strips[jj].pixels[3 * ii + 0] = g * (g_bitmap[i] >> j & 1);
+      tina.strips[jj].pixels[3 * ii + 2] = b * (b_bitmap[i] >> j & 1);
 
       // get back side too
-      tina.strips[j].pixels[3 * i + 1 + 32 * 3] = r * (r_bitmap[i] >> j & 1);
-      tina.strips[j].pixels[3 * i + 0 + 32 * 3] = g * (g_bitmap[i] >> j & 1);
-      tina.strips[j].pixels[3 * i + 2 + 32 * 3] = b * (b_bitmap[i] >> j & 1);
+      tina.strips[jj].pixels[3 * ii + 1 + 32 * 3] = r * (r_bitmap[i] >> j & 1);
+      tina.strips[jj].pixels[3 * ii + 0 + 32 * 3] = g * (g_bitmap[i] >> j & 1);
+      tina.strips[jj].pixels[3 * ii + 2 + 32 * 3] = b * (b_bitmap[i] >> j & 1);
     }
-    tina.strips[j].changed = true;
-    tina.strips[j].show();
+    tina.strips[jj].changed = true;
+    tina.strips[jj].show();
   }
 }
 
 void brighten(){
-  if(brightness % 256 <= 128){
+  if(brightness % 256 < 5){
+    brightness = tina.Color(5, 5, 5);
+  }
+  else if(brightness % 256 <= 128){
     brightness *= 2;
   }
   else{
@@ -354,11 +375,11 @@ void dim(){
   if(brightness % 256 > 160){
     brightness = tina.Color(160, 160, 160);
   }
-  else  if(brightness % 256 >= 10){
+  else  if(brightness % 256 > 5){
     brightness /= 2;
   }
   else{
-    brightness = tina.Color(5, 5, 5);
+    brightness = tina.Color(0, 0, 0); // off
   }
   update_required = true;
 }
@@ -375,7 +396,11 @@ void clock_loop(){
     start_time = getTime() + 10;
     mode = MODE_RACE;
   }
-  if(event == BUTTON_UP){
+  else if(event == BUTTON_LEFT){
+    flip = !flip; 
+    update_required = true;
+  }
+  else if(event == BUTTON_UP){
     brighten();
   }
   else if(event == BUTTON_DOWN){
@@ -402,17 +427,25 @@ void race_loop(){
     update_required = false;
   }
 
-  if(event == BUTTON_UP){
+  if(event == BUTTON_LEFT){
+    flip = !flip; 
+    update_required = true;
+  }
+  else if(event == BUTTON_UP){
     brighten();
   }
   else if(event == BUTTON_DOWN){
     dim();
   }
+  if(button_pressed(BUTTON_MIDDLE, LONG_HOLD_MS)){
+	// cancel race_loop
+	mode = MODE_CLOCK;
+  }
 }
 
 void set_hh_loop(){
   display_time(next_time, tina.Color(25, 0, 0), false);
-  for(uint8_t ii = 2; ii < 8; ii++){
+  for(uint8_t ii = 0; ii < 8; ii++){
     rgb_setpixel(ii, 0, tina.Color(1, 0, 0));
   }
   display_bitmap(brightness);
@@ -435,7 +468,7 @@ void set_hh_loop(){
 }
 void set_mm_loop(){
   display_time(next_time, tina.Color(25, 0, 0), false);
-  for(uint8_t ii = 12;  ii < 18; ii++){
+  for(uint8_t ii = 11;  ii < 20; ii++){
     rgb_setpixel(ii, 0, tina.Color(1, 0, 0));
   }
   display_bitmap(brightness);
@@ -459,7 +492,7 @@ void set_ss_loop(){
   uint32_t temp_time;
 
   display_time(next_time, tina.Color(25, 0, 0), false);
-  for(uint8_t ii = 23; ii < 29; ii++){
+  for(uint8_t ii = 23; ii < 32; ii++){
     rgb_setpixel(ii, 0, tina.Color(1, 0, 0));
   }
   display_bitmap(brightness);
@@ -501,7 +534,7 @@ void loop(){
 
   event = BUTTON_NONE; // *_loop must handle all events that it is interested in
 
-  interact();
+  interact(min_hold);
 }
 
 /* add the "1" char at the very front 
@@ -521,10 +554,10 @@ void colen(uint8_t x, uint32_t color){
   rgb_setpixel(x, 5, color);
 }
 
-uint8_t interact(){
+uint8_t interact(uint32_t min_hold){
   uint32_t start_ms = millis();
   uint8_t button = tina.getButton();
-  uint32_t min_hold = 100; // debounce
+  //uint32_t min_hold = 100; // debounce
   
   Serial_loop(); // sets event if a serial event has occured
   if(event == button){
@@ -533,9 +566,9 @@ uint8_t interact(){
   else{
     while(button && tina.getButton() == button){
       if(millis() - start_ms > min_hold){
-	event = button;
-	//rgb_setpixel(0, 0, tina.Color(1, 1, 1));
-	//display_bitmap(brightness);
+        event = button;
+	    //rgb_setpixel(0, 0, tina.Color(1, 1, 1));
+	    //display_bitmap(brightness);
       }
     }
     //rgb_setpixel(0, 0, 0);
@@ -543,4 +576,11 @@ uint8_t interact(){
   }
 
   return event;
+}
+
+bool button_pressed(uint8_t button, uint32_t min_hold){
+	uint32_t start = millis();
+	while(tina.getButton() == button){
+	}
+	return (millis() - start) > min_hold;
 }
