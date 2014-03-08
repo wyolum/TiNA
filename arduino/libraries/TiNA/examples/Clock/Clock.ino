@@ -575,9 +575,7 @@ void set_ss_loop(){
  * This is the main loop, gets called as fast as possible.
  * farms out real work to other *_loop() functions depending on mode.
  */
-void loop(){
-  uint8_t next_second;
-  
+void loop(){  
   next_time = getTime(); // now() might jump a fraction of a second here or there, getTime() goes direct to the DS3231
   if(mode == MODE_CLOCK){
     clock_loop();
