@@ -63,7 +63,7 @@ const uint32_t WHITE = tina.Color(1, 1, 1);
 const uint32_t DEBOUNCE_MS = 100;     // a button must be depressed for this many miliseconds befor it "counts"
 const uint32_t LONG_HOLD_MS = 1000;   // This defines how long a "long hold" is.  
                                       //     Used to escape from race mode and you don't want to do it by accedent 
-const uint32_t RACE_COUNTDOWN_S = 10; // Modify for  this longer countdown
+const uint32_t RACE_COUNTDOWN_S = 10; // Countdown in seconds
 
 uint8_t mode = MODE_CLOCK;      // stored the current mode with MODE_CLOCK as the default
 uint8_t event = BUTTON_NONE;    // stores any button presses
